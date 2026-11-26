@@ -38,9 +38,11 @@ struct Order {int train,day,from,to,num,status,prev,next;};
 struct Post {int train,pos,next;};
 File<User> users("users.dat");File<Train> trains("trains.dat");File<Station> stations("stations.dat");File<Run> runs("runs.dat");File<Order> orders("orders.dat");
 Map um,tm,sm;Array<unsigned char> online;Array<int> heads;Array<Post> posts;
-struct Cache {int id=-1;Train t;};Cache cache[256];
-Train train(int id){Cache &c=cache[id%256];if(c.id!=id){c.t=trains.get(id);c.id=id;}return c.t;}
-void saveTrain(int id,const Train&t){trains.put(id,t);cache[id%256].id=id;cache[id%256].t=t;}
+// Keep train schedules hot during transfer enumeration; seats remain on disk.
+constexpr int CACHE_SIZE=8192;
+struct Cache {int id=-1;Train t;};Cache cache[CACHE_SIZE];
+Train train(int id){Cache &c=cache[id%CACHE_SIZE];if(c.id!=id){c.t=trains.get(id);c.id=id;}return c.t;}
+void saveTrain(int id,const Train&t){trains.put(id,t);cache[id%CACHE_SIZE].id=id;cache[id%CACHE_SIZE].t=t;}
 void indexTrain(int id,const Train&t){for(int j=0;j<t.n;++j){int s=t.station[j];Post p{id,j,heads[s]};heads[s]=posts.n;posts.push(p);}}
 int station(const std::string&s){int id=sm.find(s.c_str());if(id>=0)return id;Station t{};strcpy(t.name,s.c_str());id=stations.add(t);sm.set(s.c_str(),id);heads.push(-1);return id;}
 const char *stationName(int id){return sm.a[id].s;}
